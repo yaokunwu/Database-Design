@@ -70,25 +70,20 @@ ALTER TABLE book_loans ADD CONSTRAINT fkeidcard FOREIGN KEY(card_no) REFERENCES 
 
 1.
 a).
-select dname, count(*)
-from department d1, employee e1
-where  d1.dno = e1.dno and d1.dno in (
-	(select dno from (select d2.dno, avg(salary)
-			 from department d2, employee e2
-			 where e2.dno = d2.dno
-			 group by d2.dno
-			 having avg(salary) > 30000) as s))
-group by dname
+select Dname, COUNT(*) Number_Of_Employee
+from DEPARTMENT d, EMPLOYEE e
+where d.Dno = e.Dno
+group by Dname
+having AVG(Salary) > 30000;
 
 b).
 select dname, count(*)
 from department d1, employee e1
 where  d1.dno = e1.dno and e1.gender='M' and d1.dno in (
-	(select dno from (select d2.dno, avg(salary)
-			 from department d2, employee e2
+	(select d2.dno from department d2, employee e2
 			 where e2.dno = d2.dno
 			 group by d2.dno
-			 having avg(salary) > 30000) as s))
+			 having avg(salary) > 30000))
 group by dname
 
 c).
@@ -115,6 +110,17 @@ where salary = (select min(salary)
 		 from dependent Q
 		 where E.ssn = Q.essn) > 1
 
+/* below is also fine*/
+select e1.fname, e1.lname
+from employee e1
+where e1.salary = (select min(salary)
+				from employee e2
+				where e1.dno = e2.dno)
+	  and 
+		exists(select *
+				from dependent d
+				where e1.ssn = d.essn)
+
 2.
 a)
 create view q_2_a as
@@ -125,24 +131,25 @@ where D.mgrssn = E.ssn
 b).
 
 create view q_2_b as
-select dname as department_name, fname as manager_fname,lname as manager_lname, ecount as number_of_employees ,pcount as number_of_projects 
-from (employee e1 join department d1 on e1.ssn = d1.mgrssn) join 
-(select dno, ecount, pcount
-from (select d.dno, count(*) as ecount
-  		from  department d left outer join employee e on e.dno=d.dno
-  		group by d.dno) m1 natural join
- 		(select d.dno, count(pno) as pcount
- 		from department d left outer join project p on p.dno=d.dno
- 		group by d.dno) m2) m3 on d1.dno = m3.dno
+select dname, fname, lname, (select count(*)
+							from employee e2
+							where e2.dno = d1.dno) as ne,
+							(select count(*)
+                                from project w2
+                                where w2.dno = d1.dno) as np
+from employee e1, department d1
+where e1.ssn = d1.mgrssn
 
 c).
 create view q_2_c as
-select pname as project_name, dname as department_name, ecount as number_of_employees, hourcount as total_hours 
-from (project p left outer join department d on p.dno = d.dno) natural join 
- (select pno, ecount, hourcount
- from (select p.pno, count(*) as ecount, sum(hours) as hourcount
-   		from  project p left outer join works_on w on p.pno=w.pno
-   		group by p.pno) m1) m2
+select pname, dname, (select count(*)
+							from works_on w2
+							where p1.pno = w2.pno) as ne,
+							(select sum(hours)
+                                from works_on w3
+                                where w3.pno = p1.pno) as nh
+from project p1, department d1
+where p1.dno = d1.dno
 
 d).
 create view q_2_d as
@@ -155,12 +162,12 @@ from (select p.pno, count(*) as ecount, sum(hours) as hourcount
 
 e).
 create view q_2_e as
-select e.fname as employee_fname,e.lname as employee_lname,e.salary as employee_salary,e.dno as employee_dno, m.fname as mgr_fname,m.lname as mgr_lname,m.salary as mgr_salary, dept_avg_salary
-from employee e, department d, employee m, (select d2.dno as mdno, avg(salary) as avg_salary
-						from employee e2, department d2
-						where e2.dno = d2.dno
-						group by d2.dno) m2
-where e.dno = d.dno and d.mgrssn = m.ssn and d.dno = mdno
+select e1.Fname as efn, e1.lname as eln, e1.salary as es, d1.dname, e2.fname as mfn, e2.lname as mln, e2.salary as ms,
+(select AVG(salary)
+from employee e3
+where e3.dno = e1.dno) 
+from employee e1, department d1, employee e2
+where e1.dno = d1.dno and d1.mgrssn = e2.ssn
 
 
 

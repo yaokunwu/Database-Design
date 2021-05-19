@@ -1,0 +1,69 @@
+Procedure #1:
+Raise the prices of all items sold by a given restaurant by a given percentage.
+
+create PROCEDURE raise_price(rid IN RESTAURANTS.RID%TYPE, percentage number) AS
+
+thisFood fooditem%ROWTYPE;
+
+CURSOR foodCUR IS
+
+SELECT R.* FROM restaurant R, fooditem F WHERE R.RID = rid AND R.RID = F.RID
+FOR UPDATE;
+
+BEGIN
+OPEN foodCUR;
+LOOP
+    FETCH foodCUR INTO thisFood;
+    EXIT WHEN(foodCUR%NOTFOUND);
+    UPDATE fooditem SET price = price * (1 + percentage / 100);
+    WHERE FID = thisFood.FID;
+END LOOP;
+CLOSE foodCUR;
+END;
+
+
+Procedure #2:
+Find all dashers that has completed 20 or more orders but has customer rating below 4.2 or completion rate below 80% and 
+insert dasher name, phone number, customer rating and completion rate into DISQUALIFY table.
+No input parameter is needed. (Create an additional table named DISQUALIFY with attribute: DName, DPhoneNo, DRating, NumsComp.)
+
+CREATE TABLE DISQUALIFY (
+    DName varchar(30),
+    DPhoneNo char(10),
+    DRating number,
+    NumsComp integer
+);
+
+CREATE PROCEDURE disqualitying AS 
+
+thisDasher dasher%ROWTYPE;
+rating number;
+
+CURSOR disqualifiedCUR IS
+SELECT * FROM dasher D
+WHERE D.NumsComp >= 20 AND (D.TotalStar / D.NumsRating < 4.2 OR D.NumsComp / D.NumsAccp < 0.8) 
+
+BEGIN
+OPEN disqualifiedCUR;
+LOOP
+  FETCH disqualifiedCUR into thisDasher;
+  EXIT WHEN (thisDasher%NOTFOUND);
+  INSERT INTO DISQUALIFY VALUES (thisDasher.DName, thisDasher.DPhoneNo, thisDasher.TotalStar/ thisDasher.NumsRating, thisDasher.NumsComp / thisDahser.NumsAccp);
+END LOOP;
+CLOSE disqualifiedCUR;
+END;
+
+
+
+
+Trigger:
+Update number of order completion on dasher table after UPDATE order status on order table. (Note that order status can only be updated from 0 meaning unfullfilled to fullfilled.)
+
+CREATE TRIGGER orderCompletion
+AFTER UPDATE OF Status ON ORDER
+FOR EACH ROW
+BEGIN
+      UPDATE dasher SET NumsComp = NumsComp + 1
+      WHERE dasher.DID = :old.DID;
+END;
+
